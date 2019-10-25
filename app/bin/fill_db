@@ -1,0 +1,118 @@
+#!/usr/bin/perl
+
+=encoding UTF-8
+=cut
+
+=head1 DESCRIPTION
+
+=cut
+
+# common modules
+use strict;
+use warnings FATAL => 'all';
+use feature 'say';
+use utf8;
+use open qw(:std :utf8);
+
+use SQL::Easy;
+use File::Find;
+use SQL::Abstract;
+
+sub get_se_mysql {
+    my $se = SQL::Easy->new(
+        database => 'mysql',
+        user => 'root',
+        password => '',
+        host => 'mysql',
+        port => 3306,
+        connection_check_threshold => 30,
+    );
+}
+
+sub get_se_cpan {
+    my $se = SQL::Easy->new(
+        database => 'cpan',
+        user => 'root',
+        password => '',
+        host => 'mysql',
+        port => 3306,
+        connection_check_threshold => 30,
+    );
+}
+
+sub create_db {
+    my $se_mysql = get_se_mysql();
+    $se_mysql->execute('create database cpan');
+}
+
+sub create_tables {
+    my $se_mysql = get_se_cpan();
+    my @sqls = (
+		'
+CREATE TABLE releases (
+    release_id int NOT NULL AUTO_INCREMENT,
+	author varchar(256) NOT NULL,
+	file_name varchar(1024) NOT NULL,
+	timestamp int unsigned NOT NULL,
+    PRIMARY KEY (release_id)
+)',
+		'
+CREATE TABLE files (
+    file_id int NOT NULL AUTO_INCREMENT,
+	release_id int NOT NULL,
+	file_name varchar(1024) NOT NULL,
+	has_space tinyint NOT NULL,
+	has_tab tinyint NOT NULL,
+    PRIMARY KEY (file_id)
+)',
+
+    );
+
+    foreach my $sql (@sqls) {
+        $se_mysql->execute($sql);
+    }
+}
+
+sub main {
+
+	my $se_cpan;
+
+	eval {
+ 		$se_cpan = get_se_cpan();
+	};
+
+	if ($@ && $@ =~ /Unknown database/) {
+        create_db();
+        create_tables();
+ 		$se_cpan = get_se_cpan();
+	}
+
+    find(
+        {
+            wanted => sub {
+                if (-f $File::Find::name) {
+					if ($File::Find::name =~ m'(\.tar\.gz)\z') {
+						my ($author) = $File::Find::name =~ m'/cpan/authors/id/./../([^/]+)/';
+						my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($File::Find::name);
+						$se_cpan->insert(
+							SQL::Abstract->new()->insert(
+								'releases',
+								{
+									file_name => $File::Find::name,
+									author => $author,
+									timestamp => $mtime,
+								},
+							),
+						);
+
+					}
+                }
+            },
+            no_chdir => 1,
+        },
+		'/cpan/authors/id/',
+    );
+
+}
+main();
+__END__

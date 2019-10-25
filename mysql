@@ -1,0 +1,1 @@
+docker exec -it parsing_cpan_mysql sh -c 'mysql --default-character-set=utf8 cpan'

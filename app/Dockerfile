@@ -16,6 +16,11 @@ ADD cpanfile.snapshot /app/
 WORKDIR /app
 RUN carton install --deployment
 
+# TODO
+RUN apt-get install -y libdbd-mysql-perl
+RUN cpanm SQL::Easy
+RUN cpanm SQL::Abstract
+
 ADD bin/ /app/bin/
 
 CMD sleep 100000000
