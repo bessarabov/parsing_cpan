@@ -20,6 +20,9 @@ use File::Find;
 use Path::Tiny;
 use SQL::Abstract;
 
+use lib '/app/lib/';
+use Utils;
+
 sub get_se_mysql {
     my $se = SQL::Easy->new(
         database => 'mysql',
@@ -63,8 +66,9 @@ CREATE TABLE files (
     file_id int NOT NULL AUTO_INCREMENT,
 	release_id int NOT NULL,
 	file_name varchar(1024) NOT NULL,
-	has_space tinyint NOT NULL,
-	has_tab tinyint NOT NULL,
+    size int NOT NULL,
+	has_space_beginning tinyint NOT NULL,
+	has_tab_beginning tinyint NOT NULL,
     PRIMARY KEY (file_id)
 )',
 
@@ -121,9 +125,10 @@ sub main {
 
 										my ($file_name) = $File::Find::name =~ m'/release_tmp/(.*)\z';
 
-										my $content = path($File::Find::name)->slurp();
-										my ($has_space) = $content =~ / /;
-										my ($has_tab) = $content =~ /\t/;
+                                        my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($File::Find::name);
+
+										my @lines = path($File::Find::name)->lines_raw();
+                                        my @arr = get_space_tab_in_the_beginning(@lines);
 
 										$se_cpan->insert(
 											SQL::Abstract->new()->insert(
@@ -131,8 +136,9 @@ sub main {
 												{
 													release_id => $release_id,
 													file_name => $file_name,
-													has_space => ($has_space // 0),
-													has_tab => ($has_tab // 0),
+                                                    size => $size,
+                                                    has_space_beginning => $arr[0],
+                                                    has_tab_beginning => $arr[1],
 												},
 											),
 										);

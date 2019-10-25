@@ -11,5 +11,7 @@ app:
     - mysql
   volumes:
     - ./app/bin/:/app/bin/
+    - ./app/lib/:/app/lib/
+    - ./app/t/:/app/t/
 
     - /Users/bessarabov/cpan/CPAN/:/cpan/
