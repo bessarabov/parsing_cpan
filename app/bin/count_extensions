@@ -1,0 +1,229 @@
+#!/usr/bin/perl
+
+=encoding UTF-8
+=cut
+
+=head1 DESCRIPTION
+
+=cut
+
+# common modules
+use strict;
+use warnings FATAL => 'all';
+use feature 'say';
+use utf8;
+use open qw(:std :utf8);
+
+use File::Find;
+
+sub main {
+	my %count;
+
+    find(
+        {
+            wanted => sub {
+                if (-f $File::Find::name) {
+					my $extension = '';
+
+					if ($File::Find::name =~ m'(\.tar\.gz)\z') {
+						$extension = $1;
+					} elsif ($File::Find::name =~ m'(\.[^\.]+)\z') {
+						$extension = $1;
+					}
+					$count{ $extension }++;
+                }
+            },
+            no_chdir => 1,
+        },
+		'/cpan/authors/id/',
+    );
+
+	foreach my $key (sort { $count{$b} <=> $count{$a} } keys %count) {
+		say "$key $count{$key}";
+	}
+
+}
+main();
+__END__
+
+Running at 2019-10-25
+
+root@e8263f2ba8d5:/app# time carton exec perl -Ilib bin/count_extensions
+.tar.gz 135571
+.readme 121127
+.meta 115097
+ 9257
+.tgz 903
+.patch 659
+.zip 652
+.gz 612
+.pl 428
+.bz2 243
+.pm 107
+.xz 104
+.html 85
+.json 82
+.txt 61
+.asc 44
+.tar 38
+.par 34
+.sig 34
+.1 24
+.pod 20
+.0 17
+.png 16
+.pdf 15
+.cgi 15
+.ppd 14
+.diff 14
+.2 14
+.rpm 12
+.00 10
+.4 10
+.bin 10
+.01 9
+.exe 9
+.5 8
+.README 8
+.3 7
+.02 7
+.03 7
+.announce 6
+.05 6
+.6 5
+.06 5
+.rar 5
+.jpg 5
+.xsd 4
+.24 4
+.bat 4
+.14 4
+.t 3
+.sh 3
+.9 3
+.dtd 3
+.11 3
+.20 3
+.7 3
+.18 3
+.04 3
+.el 2
+.crc 2
+.c 2
+.PL 2
+.41 2
+.sit 2
+.23 2
+.install-w32 2
+.gpg 2
+.16 2
+.25 2
+.08 2
+.CHANGELOG 2
+.install 2
+.plx 2
+.22 2
+.gif 2
+.deb 2
+.1st 2
+.vim 2
+.13 2
+.txz 2
+.32 2
+.ZIP 2
+.htm 2
+.26 2
+.doc 1
+.1targz 1
+.raw 1
+.subset 1
+.0205 1
+.ppt 1
+.text 1
+.win32 1
+.template 1
+.013 1
+.yml 1
+.2e 1
+.tmproj 1
+.tz 1
+.git 1
+.75 1
+.010 1
+.pl-20000330 1
+.005_53+/modules/CHECKSUMS 1
+.344 1
+.asso 1
+.27 1
+.css 1
+.share 1
+.net 1
+.24_02 1
+.2-patch-narrow-buffer 1
+.SKIP 1
+.2-README 1
+.tgs 1
+.8 1
+.012_is_in_tk_binary_directory 1
+.exclusions 1
+.gr 1
+.000 1
+.example 1
+.12 1
+.0c 1
+.Mirriam-Webster 1
+.tar-gz 1
+.10 1
+.65 1
+.kpf 1
+.17 1
+.005 1
+.chm 1
+.Zip 1
+.15 1
+.gzrawtrue 1
+.docx 1
+.07 1
+.014_build 1
+.sc 1
+.004_01+/CHECKSUMS 1
+.2-experimental-patch-narrow+dirfiles+skipcomment+skipsyntax 1
+.asm 1
+.PATCHES 1
+.bun 1
+.idx 1
+.pl-20000417 1
+.sql 1
+.2-patch-inf-loop 1
+.2-experimental-patch-narrow+dirfiles+skipcomment+skipsyntax-better 1
+.lsm 1
+.48 1
+.dir/LastLog/CHECKSUMS 1
+.mod 1
+.com 1
+.dir/CHECKSUMS 1
+.pl-31oct96 1
+.004_55+/CHECKSUMS 1
+.MacOS_binaries 1
+.19 1
+.BENLI 1
+.09 1
+.key 1
+.005_53+/CHECKSUMS 1
+.51 1
+.2-experimental-patch-narrow+dirfiles+skipcomment 1
+.21 1
+.tbz2 1
+.post 1
+.plt 1
+.pat-gz 1
+.rtf 1
+.ptk 1
+.pTk 1
+.2-patch-narrow-buffer+dirfiles 1
+.xpi 1
+
+real    11m48.457s
+user    0m15.980s
+sys     0m54.470s
+root@e8263f2ba8d5:/app#

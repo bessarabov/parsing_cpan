@@ -1,0 +1,15 @@
+mysql:
+  container_name: parsing_cpan_mysql
+  image: mysql:5.7.17
+  environment:
+    - MYSQL_ALLOW_EMPTY_PASSWORD=1
+
+app:
+  build: app/
+  container_name: parsing_cpan_app
+  links:
+    - mysql
+  volumes:
+    - ./app/bin/:/app/bin/
+
+    - /Users/bessarabov/cpan/CPAN/:/cpan/

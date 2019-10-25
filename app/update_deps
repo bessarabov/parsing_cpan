@@ -1,0 +1,6 @@
+time docker run \
+    --rm \
+    -it \
+    --volume `pwd`:/app \
+    parsing_cpan_app \
+    sh -c 'cd /app; rm -rf cpanfile.snapshot local; carton install'
