@@ -14,7 +14,6 @@ use feature 'say';
 use utf8;
 use open qw(:std :utf8);
 
-use SQL::Easy;
 use File::Copy;
 use File::Find;
 use Path::Tiny;
@@ -22,28 +21,6 @@ use SQL::Abstract;
 
 use lib '/app/lib/';
 use Utils;
-
-sub get_se_mysql {
-    my $se = SQL::Easy->new(
-        database => 'mysql',
-        user => 'root',
-        password => '',
-        host => 'mysql',
-        port => 3306,
-        connection_check_threshold => 30,
-    );
-}
-
-sub get_se_cpan {
-    my $se = SQL::Easy->new(
-        database => 'cpan',
-        user => 'root',
-        password => '',
-        host => 'mysql',
-        port => 3306,
-        connection_check_threshold => 30,
-    );
-}
 
 sub create_db {
     my $se_mysql = get_se_mysql();
