@@ -60,7 +60,7 @@ CREATE TABLE releases (
 	file_name varchar(1024) NOT NULL,
 	timestamp int unsigned NOT NULL,
     PRIMARY KEY (release_id)
-)',
+) DEFAULT CHARSET=utf8',
 		'
 CREATE TABLE files (
     file_id int NOT NULL AUTO_INCREMENT,
@@ -70,7 +70,7 @@ CREATE TABLE files (
 	has_space_beginning tinyint NOT NULL,
 	has_tab_beginning tinyint NOT NULL,
     PRIMARY KEY (file_id)
-)',
+) DEFAULT CHARSET=utf8',
 
     );
 
@@ -114,7 +114,7 @@ sub main {
                         `rm -rf /release_tmp/`;
                         `mkdir /release_tmp/`;
                         copy($File::Find::name, '/release_tmp/');
-                        `cd /release_tmp/; tar -xf *.tar.gz -C /release_tmp/`;
+                        `cd /release_tmp/; tar --warning=no-unknown-keyword -xf *.tar.gz -C /release_tmp/`;
 
 						find(
 							{
