@@ -15,7 +15,9 @@ use utf8;
 use open qw(:std :utf8);
 
 use SQL::Easy;
+use File::Copy;
 use File::Find;
+use Path::Tiny;
 use SQL::Abstract;
 
 sub get_se_mysql {
@@ -94,7 +96,7 @@ sub main {
 					if ($File::Find::name =~ m'(\.tar\.gz)\z') {
 						my ($author) = $File::Find::name =~ m'/cpan/authors/id/./../([^/]+)/';
 						my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($File::Find::name);
-						$se_cpan->insert(
+						my $release_id = $se_cpan->insert(
 							SQL::Abstract->new()->insert(
 								'releases',
 								{
@@ -105,6 +107,41 @@ sub main {
 							),
 						);
 
+                        `rm -rf /release_tmp/`;
+                        `mkdir /release_tmp/`;
+                        copy($File::Find::name, '/release_tmp/');
+                        `cd /release_tmp/; tar -xf *.tar.gz -C /release_tmp/`;
+
+						find(
+							{
+								wanted => sub {
+									if (-f $File::Find::name && $File::Find::name =~ /\.(pm|pl|t|pod)\z/) {
+
+                                        return if $File::Find::name =~ /\/perl-\d.*\.tar.gz\z/;
+
+										my ($file_name) = $File::Find::name =~ m'/release_tmp/(.*)\z';
+
+										my $content = path($File::Find::name)->slurp();
+										my ($has_space) = $content =~ / /;
+										my ($has_tab) = $content =~ /\t/;
+
+										$se_cpan->insert(
+											SQL::Abstract->new()->insert(
+												'files',
+												{
+													release_id => $release_id,
+													file_name => $file_name,
+													has_space => ($has_space // 0),
+													has_tab => ($has_tab // 0),
+												},
+											),
+										);
+									}
+								},
+								no_chdir => 1,
+							},
+							'/release_tmp/',
+						);
 					}
                 }
             },
