@@ -77,7 +77,7 @@ sub main {
             100 * ($spacetab2count{$el} // 0) / $total,
         );
 
-        foreach my $author (keys %author2spacetab) {
+        foreach my $author (sort keys %author2spacetab) {
             say " * $author" if $author2spacetab{$author} eq $el;
         }
 
