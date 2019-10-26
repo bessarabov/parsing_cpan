@@ -14,8 +14,13 @@ our @EXPORT_OK = qw(
     get_se_mysql
     get_se_cpan
 	seconds2text
+    get_db_name
 );
 our @EXPORT = @EXPORT_OK;
+
+sub get_db_name {
+    return 'cpan';
+}
 
 sub get_space_tab_in_the_beginning {
     my (@lines) = @_;
@@ -51,7 +56,7 @@ sub get_se_mysql {
 
 sub get_se_cpan {
     my $se = SQL::Easy->new(
-        database => 'cpan',
+        database => get_db_name(),
         user => 'root',
         password => '',
         host => 'mysql',

@@ -26,7 +26,7 @@ use Utils;
 
 sub create_db {
     my $se_mysql = get_se_mysql();
-    $se_mysql->execute('create database cpan');
+    $se_mysql->execute('create database ' . get_db_name());
 }
 
 sub create_tables {
