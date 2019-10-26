@@ -84,6 +84,9 @@ sub main {
             wanted => sub {
                 if (-f $File::Find::name) {
 					if ($File::Find::name =~ m'(\.tar\.gz)\z') {
+
+                        return if $File::Find::name =~ /\/perl-\d.*\.tar.gz\z/;
+
 						say $File::Find::name;
 						my ($author) = $File::Find::name =~ m'/cpan/authors/id/./../([^/]+)/';
 						my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($File::Find::name);
@@ -107,8 +110,6 @@ sub main {
 							{
 								wanted => sub {
 									if (-f $File::Find::name && $File::Find::name =~ /\.(pm|pl|t|pod)\z/) {
-
-                                        return if $File::Find::name =~ /\/perl-\d.*\.tar.gz\z/;
 
 										my ($file_name) = $File::Find::name =~ m'/release_tmp/(.*)\z';
 
