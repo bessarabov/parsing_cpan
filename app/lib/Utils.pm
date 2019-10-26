@@ -13,6 +13,7 @@ our @EXPORT_OK = qw(
     get_space_tab_in_the_beginning
     get_se_mysql
     get_se_cpan
+	seconds2text
 );
 our @EXPORT = @EXPORT_OK;
 
@@ -57,6 +58,57 @@ sub get_se_cpan {
         port => 3306,
         connection_check_threshold => 30,
     );
+}
+
+=head2 seconds2text
+
+=cut
+
+sub seconds2text {
+    my ($full_seconds) = @_;
+
+    my $text;
+
+    my $left_seconds = $full_seconds;
+
+    my $days = int($left_seconds / (24*60*60));
+    $left_seconds = $left_seconds - $days*(24*60*60);
+
+    my $hours = int($left_seconds / (60*60));
+    $left_seconds = $left_seconds - $hours*(60*60);
+
+    my $minutes = int($left_seconds / (60));
+    $left_seconds = $left_seconds - $minutes*(60);
+
+    my $need;
+
+    if ($days) {
+        $text .= sprintf "%sd",
+            $days,
+            ;
+        $need = 1;
+    }
+
+    if ($need || $hours) {
+        $text .= sprintf "%02dh",
+            $hours,
+            ;
+        $need = 1;
+    }
+
+    if ($need || $minutes) {
+        $text .= sprintf "%02dm",
+            $minutes,
+            ;
+    }
+
+    $text .= sprintf "%02ds",
+            $left_seconds,
+            ;
+
+    $text =~ s/^0//;
+
+    return $text;
 }
 
 1;

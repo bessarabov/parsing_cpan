@@ -15,6 +15,7 @@ use utf8;
 use open qw(:std :utf8);
 
 use Encode;
+use Time::ETA;
 use File::Copy;
 use File::Find;
 use Path::Tiny;
@@ -71,11 +72,19 @@ sub main {
  		$se_cpan = get_se_cpan();
 	}
 
+	# just an aprox number to make script output ETA
+    my $NUMBER_OF_RELEASES = 140_000;
+
+	my $eta = Time::ETA->new(
+		milestones => $NUMBER_OF_RELEASES,
+	);
+
     find(
         {
             wanted => sub {
                 if (-f $File::Find::name) {
 					if ($File::Find::name =~ m'(\.tar\.gz)\z') {
+						say $File::Find::name;
 						my ($author) = $File::Find::name =~ m'/cpan/authors/id/./../([^/]+)/';
 						my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,$atime,$mtime,$ctime,$blksize,$blocks) = stat($File::Find::name);
 						my $release_id = $se_cpan->insert(
@@ -128,6 +137,9 @@ sub main {
 							},
 							'/release_tmp/',
 						);
+
+						$eta->pass_milestone();
+						say "ETA: " . seconds2text(int($eta->get_remaining_seconds()));
 					}
                 }
             },

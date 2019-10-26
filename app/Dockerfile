@@ -20,6 +20,7 @@ RUN carton install --deployment
 RUN apt-get install -y libdbd-mysql-perl
 RUN cpanm SQL::Easy
 RUN cpanm SQL::Abstract
+RUN cpanm Time::ETA
 
 ADD bin/ /app/bin/
 
