@@ -14,6 +14,7 @@ use feature 'say';
 use utf8;
 use open qw(:std :utf8);
 
+use Time::ETA;
 use Data::Dumper;
 
 use lib '/app/lib/';
@@ -21,9 +22,15 @@ use Utils;
 
 sub main {
 
+    $| = 1;
+
 	my $se_cpan = get_se_cpan();
 
     my @authors = $se_cpan->get_col('select distinct(author) from releases order by author');
+
+    my $eta = Time::ETA->new(
+        milestones => scalar(@authors),
+    );
 
     my %author2spacetab;
 
@@ -48,6 +55,9 @@ sub main {
         }
 
         $author2spacetab{$author} = $has_space_beginning . $has_tab_beginning;
+
+        $eta->pass_milestone();
+        say "ETA: " . seconds2text(int($eta->get_remaining_seconds()));
     }
 
     say "\n\n";
