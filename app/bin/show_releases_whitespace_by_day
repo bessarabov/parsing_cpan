@@ -1,0 +1,109 @@
+#!/usr/bin/perl
+
+=encoding UTF-8
+=cut
+
+=head1 DESCRIPTION
+
+=cut
+
+# common modules
+use strict;
+use warnings FATAL => 'all';
+use feature 'say';
+use utf8;
+use open qw(:std :utf8);
+
+use POSIX;
+use Moment;
+use Time::ETA;
+use Path::Tiny;
+
+use lib '/app/lib/';
+use Utils;
+
+# global vars
+
+# subs
+sub get_space_tab {
+	my ($date) = @_;
+
+	my @release_ids = get_se_cpan()->get_col(
+		'select distinct(release_id) from releases where timestamp >= ? and timestamp <= ?',
+		Moment->new( iso_string => $date . 'T00:00:00Z')->get_timestamp(),
+		Moment->new( iso_string => $date . 'T23:59:59Z')->get_timestamp(),
+	);
+
+	my %release_id2spacetab;
+
+    foreach my $release_id (@release_ids) {
+        my $data = get_se_cpan()->get_data(
+            'select has_space_beginning, has_tab_beginning from files where release_id = ? group by has_space_beginning, has_tab_beginning',
+			$release_id,
+        );
+
+        my $has_space_beginning = 0;
+        my $has_tab_beginning = 0;
+
+        foreach my $el (@{$data}) {
+            if ($el->{has_space_beginning}) {
+                $has_space_beginning = 1;
+            }
+
+            if ($el->{has_tab_beginning}) {
+                $has_tab_beginning = 1;
+            }
+        }
+
+        $release_id2spacetab{$release_id} = $has_space_beginning . $has_tab_beginning;
+    }
+
+    my %spacetab2count;
+    my $total = 0;
+
+    foreach my $release_id (keys %release_id2spacetab) {
+        $spacetab2count{ $release_id2spacetab{$release_id} }++;
+    }
+
+	return %spacetab2count;
+}
+
+# main
+sub main {
+
+	my $start = Moment->new(timestamp => get_se_cpan()->get_one('select min(timestamp) from releases'));
+	my $end = Moment->now();
+
+	my $eta = Time::ETA->new(
+		milestones => POSIX::ceil(($end->get_timestamp() - $start->get_timestamp())/86_400),
+	);
+
+	my $csv = "date,00,01,10,11\n";
+
+	my $current = $start;
+	while ( $current->cmp($end) == -1 ) {
+		say $current->get_d();
+
+		my %space_tab = get_space_tab($current->get_d());
+
+		$csv .= sprintf(
+			"%s,%s,%s,%s,%s\n",
+			$current->get_d(),
+			($space_tab{'00'} // 0),
+			($space_tab{'01'} // 0),
+			($space_tab{'10'} // 0),
+			($space_tab{'11'} // 0),
+		);
+
+		$current = $current->plus( day => 1 );
+        $eta->pass_milestone();
+        say "ETA: " . seconds2text(int($eta->get_remaining_seconds()));
+	}
+
+	path('/app/bin/releases_date.csv')->spew($csv);
+
+	print $csv;
+
+}
+main();
+__END__
