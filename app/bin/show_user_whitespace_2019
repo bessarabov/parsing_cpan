@@ -1,0 +1,103 @@
+#!/usr/bin/perl
+
+=encoding UTF-8
+=cut
+
+=head1 DESCRIPTION
+
+=cut
+
+# common modules
+use strict;
+use warnings FATAL => 'all';
+use feature 'say';
+use utf8;
+use open qw(:std :utf8);
+
+use Moment;
+use Time::ETA;
+use Data::Dumper;
+
+use lib '/app/lib/';
+use Utils;
+
+sub main {
+
+    my $timestamp = Moment->new( iso_string => '2019-01-01T00:00:00Z')->get_timestamp();
+
+    $| = 1;
+
+	my $se_cpan = get_se_cpan();
+
+    my @authors = $se_cpan->get_col('select distinct(author) from releases where timestamp >= ? order by author', $timestamp);
+
+    my $eta = Time::ETA->new(
+        milestones => scalar(@authors),
+    );
+
+    my %author2spacetab;
+
+    foreach my $author (@authors) {
+        say $author;
+        my $data = $se_cpan->get_data(
+            'select has_space_beginning, has_tab_beginning from releases join files on releases.release_id = files.release_id and author = ? where timestamp >= ? group by has_space_beginning, has_tab_beginning',
+            $author,
+            $timestamp,
+        );
+
+        my $has_space_beginning = 0;
+        my $has_tab_beginning = 0;
+
+        foreach my $el (@{$data}) {
+            if ($el->{has_space_beginning}) {
+                $has_space_beginning = 1;
+            }
+
+            if ($el->{has_tab_beginning}) {
+                $has_tab_beginning = 1;
+            }
+        }
+
+        $author2spacetab{$author} = $has_space_beginning . $has_tab_beginning;
+
+        $eta->pass_milestone();
+        say "ETA: " . seconds2text(int($eta->get_remaining_seconds()));
+    }
+
+    say "\n\n";
+
+    my %spacetab2count;
+    my $total = 0;
+
+    foreach my $author (keys %author2spacetab) {
+        $spacetab2count{ $author2spacetab{$author} }++;
+        $total++;
+    }
+
+    my %spacetab2name = (
+        '00' => 'nothing',
+        '01' => 'only tabs',
+        '10' => 'only spaces',
+        '11' => 'both',
+    );
+
+    foreach my $el ('00', '01', '10', '11') {
+
+
+        say sprintf("## %s (%s) - %s (%0.1f%%)",
+            $el,
+            $spacetab2name{$el},
+            ($spacetab2count{$el} // 0),
+            100 * ($spacetab2count{$el} // 0) / $total,
+        );
+
+        foreach my $author (sort keys %author2spacetab) {
+            say " * $author" if $author2spacetab{$author} eq $el;
+        }
+
+        say '';
+    }
+
+}
+main();
+__END__
