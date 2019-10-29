@@ -1,0 +1,124 @@
+#!/usr/bin/perl
+
+=encoding UTF-8
+=cut
+
+=head1 DESCRIPTION
+
+=cut
+
+# common modules
+use strict;
+use warnings FATAL => 'all';
+use feature 'say';
+use utf8;
+use open qw(:std :utf8);
+
+use POSIX;
+use Moment;
+use Time::ETA;
+use Path::Tiny;
+
+use lib '/app/lib/';
+use Utils;
+
+# global vars
+
+# subs
+sub get_data {
+    my (%h) = @_;
+
+    my $timestamp_start = $h{timestamp_start};
+    my $timestamp_end = $h{timestamp_end};
+
+	my %release_id2spacetab;
+
+	my %release_id2letter = map { $_->{release_id} => $_->{letter} } @{get_se_cpan()->get_data(
+		'select release_id, lower(substr(author, 1, 1)) as letter from releases where timestamp >= ? and timestamp <= ?',
+        $timestamp_start,
+        $timestamp_end,
+	)};
+
+    foreach my $release_id (keys %release_id2letter) {
+        my $data = get_se_cpan()->get_data(
+            'select has_space_beginning, has_tab_beginning from files where release_id = ? group by has_space_beginning, has_tab_beginning',
+			$release_id,
+        );
+
+        my $has_space_beginning = 0;
+        my $has_tab_beginning = 0;
+
+        foreach my $el (@{$data}) {
+            if ($el->{has_space_beginning}) {
+                $has_space_beginning = 1;
+            }
+
+            if ($el->{has_tab_beginning}) {
+                $has_tab_beginning = 1;
+            }
+        }
+
+        $release_id2spacetab{$release_id} = $has_space_beginning . $has_tab_beginning;
+    }
+
+    my %letterspacetab2count;
+
+    foreach my $release_id (keys %release_id2spacetab) {
+        $letterspacetab2count{ $release_id2letter{$release_id} . $release_id2spacetab{$release_id} }++;
+    }
+
+    return %letterspacetab2count;
+}
+
+# main
+sub main {
+
+	my $start = Moment->new(timestamp => get_se_cpan()->get_one('select min(timestamp) from releases'));
+	my $end = Moment->now();
+
+	my $eta = Time::ETA->new(
+		milestones => 300,
+	);
+
+    my @tmp_header;
+    foreach my $st (qw(00 01 10 11)) {
+        foreach my $letter ('a'..'z') {
+            push @tmp_header, "$letter$st";
+        }
+    }
+
+    my $csv = 'date,' . join(',', @tmp_header). "\n";
+
+	my $current = $start;
+	while ( $current->cmp($end) == -1 ) {
+
+        my $year_month = sprintf '%s-%02d', $current->get_year(), $current->get_month();
+        say $year_month;
+
+        my %h = get_data(
+            timestamp_start => $current->get_month_start()->get_timestamp(),
+            timestamp_end => $current->get_month_end()->get_timestamp(),
+        );
+
+        my @data;
+
+        foreach my $st (qw(00 01 10 11)) {
+            foreach my $letter ('a'..'z') {
+                push @data, $h{"$letter$st"} // 0;
+            }
+        }
+
+        $csv .= $year_month . ',' . join(',', @data) . "\n";
+
+		$current = $current->get_month_end()->plus( day => 1 );
+        $eta->pass_milestone();
+        say "ETA: " . seconds2text(int($eta->get_remaining_seconds()));
+	}
+
+	path('/app/bin/releases_year_month_letter.csv')->spew($csv);
+
+	print $csv;
+
+}
+main();
+__END__
