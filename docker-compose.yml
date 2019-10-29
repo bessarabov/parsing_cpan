@@ -11,6 +11,7 @@ app:
     - mysql
   volumes:
     - ./app/bin/:/app/bin/
+    - ./app/data/:/app/data/
     - ./app/lib/:/app/lib/
     - ./app/t/:/app/t/
 
